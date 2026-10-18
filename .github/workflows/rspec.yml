@@ -1,0 +1,22 @@
+name: RSpec
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  rspec:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0.5"
+          bundler-cache: true
+
+      - name: Run specs
+        env:
+          BREWER_FAKE_CHAT: "1"
+        run: bundle exec rspec --format documentation
