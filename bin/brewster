@@ -1,0 +1,27 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "thor"
+require_relative "../lib/brewster"
+
+module Brewster
+  class CLI < Thor
+    desc "serve", "Start the brewster server (Falcon)"
+    option :port, type: :numeric, default: Config.default_port
+    option :count, type: :numeric, default: 1
+    def serve
+      require_relative "../lib/brewster/cli"
+      Cli.serve(port: options[:port], count: options[:count])
+    end
+
+    desc "chat", "Connect the terminal client"
+    option :port, type: :numeric, default: Config.default_port
+    option :session, type: :string, default: nil
+    def chat
+      require_relative "../lib/brewster/cli"
+      Cli.chat(port: options[:port], session: options[:session])
+    end
+  end
+end
+
+Brewster::CLI.start(ARGV)
