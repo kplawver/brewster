@@ -8,7 +8,7 @@ module Brewster
       Key = Struct.new(:type, :data)
       ENTER = :enter
       CHAR = :char
-      BACKSPACE = :backspace
+      BS = :backspace
       CTRL_C = :ctrl_c
       CTRL_D = :ctrl_d
       CTRL_J = :ctrl_j
@@ -25,27 +25,27 @@ module Brewster
 
       def current_line = @line.dup
 
-      def start(raw: true)
+      def start
         # Raw mode is owned by App#run ($stdin.raw wrapping the whole run);
         # Input only decodes bytes.
         self
       end
 
-      # Blocks for one key event; decodes ANSI sequences.
+      # Blocks for one key event; decodes ANSI sequences. Returns a Key with
+      # `data` re-encoded as UTF-8 (getc yields single bytes in raw mode).
       def read_key
         c = $stdin.getc
         return nil if c.nil?
         case c
         when "\r", "\n" then return Key.new(ENTER, nil)
-        when "\v" then return Key.new(CTRL_J, nil)  # Ctrl-J in cooked/raw
         when "\x03" then return Key.new(CTRL_C, nil)
         when "\x04" then return Key.new(CTRL_D, nil)
-        when "\x7f", "\b" then return Key.new(BACKSPACE, nil)
+        when "\x7f" then return Key.new(BS, nil)
         when "\e"
           seq = read_escape
           return decode_escape(seq)
         end
-        Key.new(CHAR, c)
+        Key.new(CHAR, c.dup.force_encoding(Encoding::UTF_8))
       end
 
       def history_push(line)

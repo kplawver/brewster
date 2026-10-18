@@ -15,6 +15,7 @@ if ENV["BREWSTER_LLM_API_KEY"]
 end
 
 require_relative "brewster/config"
+require_relative "brewster/log"
 require_relative "brewster/protocol"
 require_relative "brewster/event_log"
 require_relative "brewster/bridge"

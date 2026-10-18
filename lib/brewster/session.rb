@@ -1,6 +1,7 @@
 require "ruby_llm"
 require_relative "event_log"
 require_relative "bridge"
+require_relative "log"
 require_relative "agent_loop"
 require_relative "tools"
 require_relative "context/agents_md"
@@ -41,6 +42,7 @@ module Brewster
     def emit(type, **payload)
       seq = @log.append(type, session_id: @id, **payload)
       @bridge.write(@log.last_line)
+      log_event(type, payload)
       seq
     end
 
@@ -62,6 +64,7 @@ module Brewster
       loop = AgentLoop.new(self, system_prompt: prompt,
                                 chat_factory: @chat_factory,
                                 on_event: method(:turn_event))
+      Log.info("session=#{@id} turn=start chars=#{text.length} model=#{model}")
       @turn_thread = Thread.new do
         Thread.current.report_on_exception = false
         loop.run(text)
@@ -71,6 +74,7 @@ module Brewster
 
     # Cross-thread cancel: chat flag + kill every running subprocess group.
     def cancel
+      Log.info("session=#{@id} turn=cancel")
       Permissions.kill_all!
       @turn_thread&.raise(RubyLLM::CancelledError)
       nil
@@ -81,6 +85,25 @@ module Brewster
     end
 
     private
+
+    # Per-event log line: streaming chunks would flood the log, so
+    # text_delta is debug-only; tool traffic and lifecycle are info.
+    def log_event(type, payload)
+      case type
+      when :text_delta
+        Log.debug("session=#{@id} text_delta chars=#{payload[:text].to_s.length}")
+      when :tool_call
+        Log.info("session=#{@id} tool_call name=#{payload[:name]} id=#{payload[:id]}")
+      when :tool_output
+        Log.info("session=#{@id} tool_output id=#{payload[:id]} bytes=#{payload[:output].to_s.length}")
+      when :approval_request
+        Log.info("session=#{@id} approval_request name=#{payload[:name]} id=#{payload[:id]}")
+      when :error
+        Log.error("session=#{@id} turn_error code=#{payload[:code]} message=#{payload[:message]}")
+      else
+        Log.info("session=#{@id} #{type}")
+      end
+    end
 
     # AgentLoop callback: emits and tracks awaiting_approval state.
     def turn_event(type, **payload)

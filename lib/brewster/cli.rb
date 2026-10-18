@@ -12,6 +12,8 @@ module Brewster
         exit 1
       end
       ensure_home
+      require_relative "log"
+      Log.info("brewster serve bootstrapping port=#{port} count=#{count} log=#{Log.target_description}")
       ENV["BREWSTER_BIND_URL"] = "http://127.0.0.1:#{port}"
       exec("bundle", "exec", "falcon", "serve",
            "--count", count.to_s,
@@ -22,10 +24,16 @@ module Brewster
 
     def chat(port:, session:)
       require_relative "client/app"
+      require_relative "log"
+      # stdout/stderr are the client's render surface: a log line lands in
+      # the middle of the live region. Interactive runs log nowhere unless
+      # BREWSTER_LOG is set explicitly.
+      ENV["BREWSTER_LOG"] ||= "off"
       url = "http://127.0.0.1:#{port}"
       token = read_token
       Client::App.new(url: url, token: token, session_id: session).run
     rescue Errno::ECONNREFUSED, Async::WebSocket::ConnectionError => e
+      Log.exception("chat cannot reach #{url}", e)
       warn "brewster chat: cannot reach #{url} (#{e.class})"
       exit 1
     end
