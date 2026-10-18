@@ -12,10 +12,12 @@ module Helpers
   end
 
   def spawn_falcon(port, config_path, log: File::NULL)
+    # Pass the path itself: `log.to_i` on a String is 0, which redirects to
+    # fd 0 (stdin) and both loses the output and breaks the child's writes.
     pid = Process.spawn(
       "bundle", "exec", "falcon", "serve", "--count", "1",
       "--bind", "http://127.0.0.1:#{port}", "--config", config_path,
-      pgroup: true, out: log.to_i, err: log.to_i
+      pgroup: true, out: log, err: log
     )
     pid
   end
