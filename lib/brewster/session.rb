@@ -77,7 +77,7 @@ module Brewster
     end
 
     def model
-      ENV.fetch("BREWER_LLM_MODEL", "unknown")
+      ENV.fetch("BREWSTER_LLM_MODEL", "unknown")
     end
 
     private
@@ -98,11 +98,11 @@ module Brewster
     # Default factory: fresh chat per turn. The prompt (AGENTS.md + persona)
     # is built by start_turn; with_instructions REPLACES the system message
     # (append defaults to false), so this is safe even on a reused chat.
-    # BREWER_FAKE_CHAT=1 swaps in the scripted no-network chat (e2e specs).
+    # BREWSTER_FAKE_CHAT=1 swaps in the scripted no-network chat (e2e specs).
     def default_chat_factory(prompt)
-      return Testing::ScriptedChat.new if ENV["BREWER_FAKE_CHAT"] == "1"
+      return Testing::ScriptedChat.new if ENV["BREWSTER_FAKE_CHAT"] == "1"
       RubyLLM.chat(
-        model: ENV.fetch("BREWER_LLM_MODEL"),
+        model: ENV.fetch("BREWSTER_LLM_MODEL"),
         provider: :openai,
         assume_model_exists: true
       ).with_instructions(prompt)

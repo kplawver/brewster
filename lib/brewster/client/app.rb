@@ -21,7 +21,7 @@ module Brewster
         @ctrl_c_at = nil
         @last_seq = 0
         @winch_r, @winch_w = IO.pipe
-        @model = ENV.fetch("BREWER_LLM_MODEL", "unknown")
+        @model = ENV.fetch("BREWSTER_LLM_MODEL", "unknown")
       end
 
       def run

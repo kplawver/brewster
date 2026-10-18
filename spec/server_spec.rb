@@ -10,14 +10,14 @@ RSpec.describe "Brewster server e2e" do
 
   around do |example|
     FileUtils.mkdir_p(File.join(tmpdir, "sessions"))
-    env_home = ENV["BREWER_HOME"]
-    ENV["BREWER_HOME"] = tmpdir
-    env_bind = ENV["BREWER_BIND_URL"]
-    ENV["BREWER_BIND_URL"] = base
+    env_home = ENV["BREWSTER_HOME"]
+    ENV["BREWSTER_HOME"] = tmpdir
+    env_bind = ENV["BREWSTER_BIND_URL"]
+    ENV["BREWSTER_BIND_URL"] = base
     File.write(File.join(tmpdir, "token"), "testtoken")
     File.chmod(0o600, File.join(tmpdir, "token"))
-    env_fake = ENV["BREWER_FAKE_CHAT"]
-    ENV["BREWER_FAKE_CHAT"] = "1"
+    env_fake = ENV["BREWSTER_FAKE_CHAT"]
+    ENV["BREWSTER_FAKE_CHAT"] = "1"
     server = Helpers.spawn_falcon(port, File.expand_path("../config.ru", __dir__),
                                   log: "/tmp/brewster-falcon-spec.log")
     begin
@@ -25,9 +25,9 @@ RSpec.describe "Brewster server e2e" do
       example.run
     ensure
       Helpers.kill_tree(server)
-      env_fake ? ENV["BREWER_FAKE_CHAT"] = env_fake : ENV.delete("BREWER_FAKE_CHAT")
-      env_home ? ENV["BREWER_HOME"] = env_home : ENV.delete("BREWER_HOME")
-      env_bind ? ENV["BREWER_BIND_URL"] = env_bind : ENV.delete("BREWER_BIND_URL")
+      env_fake ? ENV["BREWSTER_FAKE_CHAT"] = env_fake : ENV.delete("BREWSTER_FAKE_CHAT")
+      env_home ? ENV["BREWSTER_HOME"] = env_home : ENV.delete("BREWSTER_HOME")
+      env_bind ? ENV["BREWSTER_BIND_URL"] = env_bind : ENV.delete("BREWSTER_BIND_URL")
       FileUtils.remove_entry(tmpdir)
     end
   end

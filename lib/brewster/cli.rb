@@ -5,14 +5,14 @@ module Brewster
     module_function
 
     def serve(port:, count:)
-      missing = %w[BREWER_LLM_BASE_URL BREWER_LLM_API_KEY BREWER_LLM_MODEL].reject { |v| ENV[v] }
+      missing = %w[BREWSTER_LLM_BASE_URL BREWSTER_LLM_API_KEY BREWSTER_LLM_MODEL].reject { |v| ENV[v] }
       unless missing.empty?
         warn "brewster serve: missing environment variable(s) #{missing.join(', ')}"
-        warn "set BREWER_LLM_BASE_URL, BREWER_LLM_API_KEY and BREWER_LLM_MODEL (OpenAI-compatible endpoint)"
+        warn "set BREWSTER_LLM_BASE_URL, BREWSTER_LLM_API_KEY and BREWSTER_LLM_MODEL (OpenAI-compatible endpoint)"
         exit 1
       end
       ensure_home
-      ENV["BREWER_BIND_URL"] = "http://127.0.0.1:#{port}"
+      ENV["BREWSTER_BIND_URL"] = "http://127.0.0.1:#{port}"
       exec("bundle", "exec", "falcon", "serve",
            "--count", count.to_s,
            "--no-restart",

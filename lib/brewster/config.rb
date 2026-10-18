@@ -3,7 +3,7 @@ module Brewster
     module_function
 
     def home
-      ENV.fetch("BREWER_HOME") { File.expand_path("~/.brewster") }
+      ENV.fetch("BREWSTER_HOME") { File.expand_path("~/.brewster") }
     end
 
     def sessions_dir

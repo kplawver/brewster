@@ -7,10 +7,10 @@ require "async"
 require "async/websocket/adapters/rack"
 require "ruby_llm"
 
-if ENV["BREWER_LLM_API_KEY"]
+if ENV["BREWSTER_LLM_API_KEY"]
   RubyLLM.configure do |c|
-    c.openai_api_key = ENV["BREWER_LLM_API_KEY"]
-    c.openai_api_base = ENV.fetch("BREWER_LLM_BASE_URL")
+    c.openai_api_key = ENV["BREWSTER_LLM_API_KEY"]
+    c.openai_api_base = ENV.fetch("BREWSTER_LLM_BASE_URL")
   end
 end
 
