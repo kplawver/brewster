@@ -21,13 +21,13 @@ module Helpers
   end
 
   def kill_tree(pid)
-    Process.kill("-TERM", -pid)
+    Process.kill("TERM", -pid)
   rescue Errno::ESRCH
     nil
   ensure
     sleep 1
     begin
-      Process.kill("-KILL", -pid) if Process.kill(0, -pid)
+      Process.kill("KILL", -pid) if Process.kill(0, -pid)
     rescue Errno::ESRCH, Errno::EPERM
       nil
     end
