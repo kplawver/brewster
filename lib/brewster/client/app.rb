@@ -4,6 +4,7 @@ require "io/console"
 require_relative "connection"
 require_relative "render"
 require_relative "input"
+require_relative "../log"
 
 module Brewster
   module Client
@@ -69,11 +70,10 @@ module Brewster
               next
             end
             case kind
-            when :frame then dispatch(payload, conn)
+            when :frame then handle_frame(payload)
             when :connected then @render.set_status("connected · session #{@session_id || 'new'} · #{@model}")
             when :disconnected then @render.set_status("reconnecting (#{payload})")
             when :stopped then break
-            when :line then submit(payload)
             when :key then handle_key(payload, conn)
             when :resize then @render.resize!
             end
@@ -112,14 +112,6 @@ module Brewster
         nil
       end
 
-      def dispatch(payload, conn)
-        case payload["type"]
-        when "__send" then conn.send_frame(type: "send", text: payload["text"])
-        when "__cancel" then conn.send_frame(type: "cancel")
-        else handle_frame(payload)
-        end
-      end
-
       def handle_frame(msg)
         case msg["type"]
         when "attached"
@@ -154,8 +146,9 @@ module Brewster
         when Input::CHAR
           line = @render.input_line + key.data
           @render.set_input(line)
-        when Input::BACKSPACE
-          @render.set_input(@render.input_line[0...-1].to_s)
+        when Input::BS
+          line = @render.input_line
+          @render.set_input(line.empty? ? line : line[0...-1])
         when Input::ENTER
           line = @render.input_line
           if line.empty?
@@ -163,10 +156,8 @@ module Brewster
           else
             @input.history_push(line)
             @render.set_input("")
-            submit(line)
+            submit(line, conn)
           end
-        when Input::CTRL_J
-          @render.set_input(@render.input_line + "\n")
         when Input::UP
           @render.set_input(@input.history_up || @render.input_line)
         when Input::DOWN
@@ -185,8 +176,14 @@ module Brewster
         end
       end
 
-      def submit(line)
-        @render.block("you: #{line}")
+      def submit(line, conn)
+        unless conn.send_frame(type: "send", text: line)
+          Log.error("client send failed: not connected (session=#{@session_id})")
+          @render.error_line("not connected — message not sent")
+          @render.set_status("disconnected · session #{@session_id} · #{@model}")
+          return
+        end
+        Log.info("client sent message chars=#{line.length} session=#{@session_id || 'new'}")
         @render.set_status("thinking · session #{@session_id} · #{@model}")
       end
 

@@ -1,4 +1,5 @@
 require "set"
+require_relative "log"
 
 module Brewster
   # Runs the agent conversation on the session's turn thread.
@@ -79,6 +80,7 @@ module Brewster
     rescue RubyLLM::CancelledError
       reason = "cancelled"
     rescue StandardError => e
+      Log.exception("session=#{@session.id} turn_error", e)
       @on_event.call(:error, code: "turn_error", message: "#{e.class}: #{e.message}")
       reason = "error"
     ensure

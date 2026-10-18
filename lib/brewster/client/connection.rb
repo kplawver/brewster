@@ -2,6 +2,7 @@ require "async"
 require "async/websocket/client"
 require "async/http/endpoint"
 require "json"
+require_relative "../log"
 
 module Brewster
   module Client
@@ -29,6 +30,7 @@ module Brewster
             connect_once
             backoff = 0.5
           rescue StandardError => e
+            Log.warn("ws=disconnected url=#{@url} #{e.class}: #{e.message}")
             @out << [:disconnected, e.message]
           end
           break if @stop
@@ -60,6 +62,7 @@ module Brewster
         Async::WebSocket::Client.connect(endpoint, protocols: ["ws"], headers: headers) do |conn|
           @conn = conn
           @out << [:connected, nil]
+          Log.info("ws=connect url=#{@url} session=#{@session_id || 'new'} last_seq=#{@last_seq}")
           conn.write(JSON.generate(
             type: "attach", session_id: @session_id, last_seq: @last_seq
           ))

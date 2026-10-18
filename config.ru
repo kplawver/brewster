@@ -22,3 +22,7 @@ Signal.trap("TERM") { shutdown.call }
 at_exit { shutdown.call }
 
 run Brewster::Server::App.new
+
+Brewster::Log.info("brewster server starting pid=#{Process.pid} home=#{Brewster::Config.home} " \
+                   "log=#{Brewster::Log.target_description} " \
+                   "model=#{ENV.fetch("BREWSTER_LLM_MODEL", "unknown")}")

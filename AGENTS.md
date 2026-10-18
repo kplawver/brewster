@@ -17,6 +17,10 @@ bin/brewster chat     # terminal client
 
 Test loading: there is no gemspec. rspec-core auto-adds `lib/` and `spec/` to `$LOAD_PATH` from the project root, which is how `require "brewster"` and `require "spec_helper"` resolve. Plain `bundle exec ruby -e 'require "brewster"'` does NOT resolve — don't copy that pattern into new tooling.
 
+## Logging
+
+`Brewster::Log` (`lib/brewster/log.rb`) is the only logger. Default target is **stdout** (`BREWSTER_LOG=stdout`), so `brewster serve` is observable where it was started; `BREWSTER_LOG=off|stderr|<path>` overrides (relative paths resolve under `BREWSTER_HOME`, 10 MiB rotation). `BREWSTER_LOG_LEVEL` defaults to `info`; `text_delta` is debug-only so streams don't flood. Specs set `BREWSTER_LOG=off`.
+
 ## Layout
 
 | Path | Responsibility |
@@ -27,6 +31,7 @@ Test loading: there is no gemspec. rspec-core auto-adds `lib/` and `spec/` to `$
 | `lib/brewster/config.rb` | `BREWSTER_HOME` paths, default port 7333 |
 | `lib/brewster/protocol.rb` | The single wire schema: `Protocol.encode`/`parse`, event + command names |
 | `lib/brewster/event_log.rb` | Append-only JSONL; `seq` = line number; `each_since` replay |
+| `lib/brewster/log.rb` | Process-wide `Logger` (stdout default; `BREWSTER_LOG`/`BREWSTER_LOG_LEVEL`) |
 | `lib/brewster/bridge.rb` | Thread→fiber event fan-out via per-subscriber pipes; 64-line replay ring |
 | `lib/brewster/permissions.rb` | Approval gate (all tools), `tool_call_id` → pid registry, group kill |
 | `lib/brewster/session.rb` | Owns EventLog, Bridge, command Queue, turn thread; state `idle`/`running`/`awaiting_approval` |

@@ -23,6 +23,7 @@ module Brewster
         @status = "connecting"
         @approval = nil
         @width = width
+        @drawn = 0 # live-region rows the cursor is parked below
       end
 
       def width
@@ -104,28 +105,39 @@ module Brewster
 
       private
 
-      # Live region: streaming text (last lines), optional approval prompt,
-      # input line, status line.
+      # Live region: streaming text (last line), optional approval prompt,
+      # input line, status line. @drawn is how many rows the cursor is
+      # currently parked below; every redraw walks back exactly that far so
+      # the region can shrink (e.g. the streaming row disappearing when the
+      # turn ends). scroll() leaves @drawn = 0 with the cursor on a clean
+      # line, so redraw always emits at least one row and never needs to
+      # move the cursor up past the top.
       def redraw
-        live_lines = @live_text.lines.last(1).map(&:chomp)
         rows = []
-        rows << "#{CYAN}#{live_lines.first}#{RESET}" unless live_lines.empty?
+        live = @live_text.lines.last&.chomp
+        rows << "#{CYAN}#{live}#{RESET}" if live && !live.empty?
         rows << "#{YELLOW}#{@approval}#{RESET}" if @approval
         rows << "#{BOLD}> #{RESET}#{@input}"
         rows << "#{DIM}#{@status}#{RESET}"
 
+        @out.print("\e[#{@drawn}A") if @drawn.positive?
         @out.print(CLEAR_LINE)
-        @out.print(rows.map { |r| truncate(r) }.join("\e[K\n"))
-        @out.print("\e[K\e[#{rows.length}A\r") # park cursor at region top
+        @out.print(rows.map { |r| truncate(r) }.join("\e[K\r\n"))
+        @out.print("\e[K\e[#{rows.length - 1}A\r")
         @out.print(CURSOR_HIDE)
         @out.flush
+        @drawn = rows.length - 1
       end
 
       # Prints finished content to scrollback, clearing the live region first.
+      # The cursor ends on a clean line (start of a new blank row).
       def scroll(text)
-        rows = 1 + (@approval ? 1 : 0) + 2
-        @out.print(CLEAR_LINE + "\e[#{rows - 1}B\e[J")
-        @out.print(wrap(text) + "\n")
+        row = wrap(text)
+        @out.print(CLEAR_LINE)
+        @out.print("\e[#{@drawn}B") if @drawn.positive?
+        @out.print("\e[J#{row}\n")
+        @out.flush
+        @drawn = 0
       end
 
       def truncate(line)
@@ -151,7 +163,7 @@ module Brewster
       end
 
       def wrap(text)
-        text.lines.map { |l| truncate(l.chomp) }.join("\n")
+        text.lines.map { |l| truncate(l.chomp) }.join("\r\n")
       end
     end
   end

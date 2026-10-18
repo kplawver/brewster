@@ -4,6 +4,7 @@ require_relative "../config"
 require_relative "../protocol"
 require_relative "../event_log"
 require_relative "../bridge"
+require_relative "../log"
 require_relative "../session"
 
 module Brewster
@@ -65,6 +66,8 @@ module Brewster
             conn.flush
           end
           session = attach_session(msg)
+          Log.info("ws=attach session=#{session.id} next_seq=#{session.log.next_seq} " \
+                   "last_seq=#{msg[:last_seq].to_i} state=#{session.state}")
           conn.write(Protocol.encode("attached", session_id: session.id,
                                               next_seq: session.log.next_seq))
           conn.flush
@@ -90,6 +93,7 @@ module Brewster
         rescue Async::Stop, IOError, Errno::EPIPE, Errno::EBADF
           nil
         ensure
+          Log.info("ws=close session=#{session&.id || '-'}")
           inbound&.stop
           session&.bridge&.unsubscribe(reader) if reader
           reader&.close unless reader&.closed?
@@ -119,12 +123,15 @@ module Brewster
       def handle_inbound(session, msg, reader)
         case msg[:type]
         when "send"
+          Log.info("session=#{session.id} cmd=send chars=#{msg[:text].to_s.length}")
           if session.start_turn(msg[:text])
             nil # turn events flow through the bridge
           else
+            Log.warn("session=#{session.id} cmd=send rejected: busy")
             session.emit("error", code: "busy", message: "turn in progress")
           end
         when "approve", "deny"
+          Log.info("session=#{session.id} cmd=#{msg[:type]} id=#{msg[:tool_call_id]}")
           session.push_command(msg)
         when "cancel"
           session.cancel

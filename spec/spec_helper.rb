@@ -1,4 +1,5 @@
 require "bundler/setup"
+ENV["BREWSTER_LOG"] = "off" # unit specs aren't the logger's audience
 require "brewster"
 require "json"
 require "tmpdir"
