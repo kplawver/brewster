@@ -9,11 +9,11 @@ mise install          # Ruby 4.0.5
 bundle install
 bundle exec rspec     # full suite, random order (seed printed on failure)
 bundle exec rspec spec/session_spec.rb:212   # single example
-bin/brewster serve    # server; requires BREWER_LLM_{BASE_URL,API_KEY,MODEL}
+bin/brewster serve    # server; requires BREWSTER_LLM_{BASE_URL,API_KEY,MODEL}
 bin/brewster chat     # terminal client
 ```
 
-`BREWER_FAKE_CHAT=1` swaps RubyLLM for `Brewster::Testing::ScriptedChat` (echoes input, never touches the network) — used by e2e specs and for manual runs without API access.
+`BREWSTER_FAKE_CHAT=1` swaps RubyLLM for `Brewster::Testing::ScriptedChat` (echoes input, never touches the network) — used by e2e specs and for manual runs without API access.
 
 Test loading: there is no gemspec. rspec-core auto-adds `lib/` and `spec/` to `$LOAD_PATH` from the project root, which is how `require "brewster"` and `require "spec_helper"` resolve. Plain `bundle exec ruby -e 'require "brewster"'` does NOT resolve — don't copy that pattern into new tooling.
 
@@ -24,7 +24,7 @@ Test loading: there is no gemspec. rspec-core auto-adds `lib/` and `spec/` to `$
 | `bin/brewster` | Thor CLI: `serve`, `chat` |
 | `config.ru` | Falcon app; INT/TERM/`at_exit` hardening (kills tool process groups, closes bridges) |
 | `lib/brewster.rb` | Deps, RubyLLM config from env |
-| `lib/brewster/config.rb` | `BREWER_HOME` paths, default port 7333 |
+| `lib/brewster/config.rb` | `BREWSTER_HOME` paths, default port 7333 |
 | `lib/brewster/protocol.rb` | The single wire schema: `Protocol.encode`/`parse`, event + command names |
 | `lib/brewster/event_log.rb` | Append-only JSONL; `seq` = line number; `each_since` replay |
 | `lib/brewster/bridge.rb` | Thread→fiber event fan-out via per-subscriber pipes; 64-line replay ring |
@@ -37,7 +37,7 @@ Test loading: there is no gemspec. rspec-core auto-adds `lib/` and `spec/` to `$
 | `lib/brewster/server/app.rb` | Sinatra app: bearer-token + Origin auth, WS upgrade, session attach |
 | `lib/brewster/server/ws.rb` | `Async::WebSocket::Adapters::Rack` bridge; must be a Sinatra route |
 | `lib/brewster/client/{app,connection,input,render}.rb` | Terminal client: dispatch, reconnect+reattach, raw stdin, stdlib-ANSI render |
-| `lib/brewster/testing.rb` | `ScriptedChat` for `BREWER_FAKE_CHAT=1` |
+| `lib/brewster/testing.rb` | `ScriptedChat` for `BREWSTER_FAKE_CHAT=1` |
 
 ## Invariants — check before touching these areas
 

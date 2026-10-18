@@ -2,7 +2,7 @@ require "set"
 
 module Brewster
   module Testing
-    # Minimal scripted chat for e2e runs with BREWER_FAKE_CHAT=1: echoes the
+    # Minimal scripted chat for e2e runs with BREWSTER_FAKE_CHAT=1: echoes the
     # user text as one delta. Mirrors the RubyLLM::Chat API subset the
     # AgentLoop drives. Never touches the network.
     class ScriptedChat

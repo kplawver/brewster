@@ -39,7 +39,7 @@ module Brewster
       end
 
       def port
-        @port ||= URI.parse(ENV.fetch("BREWER_BIND_URL", "http://127.0.0.1:#{Config.default_port}")).port
+        @port ||= URI.parse(ENV.fetch("BREWSTER_BIND_URL", "http://127.0.0.1:#{Config.default_port}")).port
       end
 
       def forbidden
