@@ -18,7 +18,8 @@ RSpec.describe "Brewster server e2e" do
     File.chmod(0o600, File.join(tmpdir, "token"))
     env_fake = ENV["BREWER_FAKE_CHAT"]
     ENV["BREWER_FAKE_CHAT"] = "1"
-    server = Helpers.spawn_falcon(port, File.expand_path("../config.ru", __dir__))
+    server = Helpers.spawn_falcon(port, File.expand_path("../config.ru", __dir__),
+                                  log: "/tmp/brewster-falcon-spec.log")
     begin
       Helpers.wait_port(port)
       example.run
