@@ -49,7 +49,7 @@ Test loading: there is no gemspec. rspec-core auto-adds `lib/` and `spec/` to `$
 
 **Approval gating.** Every tool requires approval (`Permissions.requires_approval?` is unconditionally true in the POC). Denied calls never execute — no `before_tool_call`/`after_tool_result` callbacks run for them; the loop emits their `tool_output` itself. Approval frames are emitted from the loop (not RubyLLM's callback) because the callback fires after execution.
 
-**Process-group kills.** The bash tool spawns with `bash -c` + `pgroup: true`. Never switch to `bash -lc`: a login shell enables job control, putting the command in its own pgid that the group-KILL misses. Cancel and shutdown rely on `Permissions.kill_group`/`kill_all!` (TERM, then KILL after 2 s).
+**Process-group kills.** The bash tool spawns with `bash -c` + `pgroup: true`. Never switch to `bash -lc`: a login shell enables job control, putting the command in its own pgid that the group-KILL misses. Cancel and shutdown rely on `Permissions.kill_group`/`kill_all!` (TERM, then KILL after 2 s). Signal the group as `Process.kill("TERM", -pid)` — on Ruby 4 the `"-TERM"` + negative-pid double negative raises `Errno::EINVAL`.
 
 **Shutdown.** `config.ru` traps INT/TERM and also runs at `at_exit` (Falcon's `--no-restart` keeps workers alive for it). Both paths must keep killing tool process groups and closing bridges; losing either leaks subprocesses or hangs workers.
 

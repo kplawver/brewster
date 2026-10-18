@@ -34,7 +34,9 @@ module Brewster
       end
 
       def kill_group(pid, signal)
-        Process.kill(signal, -pid)
+        # Ruby 4: "-TERM" + negative pid raises Errno::EINVAL; the negated
+        # pid alone selects the process group, so pass a positive signal.
+        Process.kill(signal.sub(/\A-/, ""), -pid)
       rescue Errno::ESRCH, Errno::EPERM
         nil
       end
