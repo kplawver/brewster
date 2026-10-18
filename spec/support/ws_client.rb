@@ -33,14 +33,17 @@ module Helpers
     end
   end
 
-  def wait_port(port, timeout = 15)
+  def wait_port(port, timeout = 15, log: "/tmp/brewster-falcon-spec.log")
     deadline = Time.now + timeout
     loop do
       begin
         TCPSocket.new("127.0.0.1", port).close
         return
       rescue Errno::ECONNREFUSED
-        raise "falcon did not start on #{port}" if Time.now > deadline
+        if Time.now > deadline
+          detail = File.exist?(log) ? File.read(log)[-2000..] : "(no log)"
+          raise "falcon did not start on #{port}\n#{detail}"
+        end
         sleep 0.2
       end
     end
