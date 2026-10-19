@@ -113,6 +113,7 @@ module Brewster
       end
 
       def handle_frame(msg)
+        Log.debug("rx #{summarize(msg)}")
         case msg["type"]
         when "attached"
           @session_id = msg["session_id"]
@@ -142,6 +143,7 @@ module Brewster
       end
 
       def handle_key(key, conn)
+        Log.debug("key type=#{key.type} data=#{key.data.inspect}")
         case key.type
         when Input::CHAR
           line = @render.input_line + key.data
@@ -174,6 +176,24 @@ module Brewster
             @render.set_status("cancelling… · session #{@session_id} · #{@model}")
           end
         end
+      end
+
+      # One log line per inbound frame, without dumping whole tool outputs.
+      def summarize(msg)
+        type = msg["type"]
+        detail =
+          case type
+          when "text_delta" then msg["text"].inspect
+          when "user_message" then msg["text"].inspect
+          when "attached" then "session=#{msg['session_id']} next_seq=#{msg['next_seq']}"
+          when "tool_call" then "name=#{msg['name']} id=#{msg['id']} args=#{truncate_args(msg['args'])}"
+          when "tool_output" then "id=#{msg['id']} bytes=#{msg['output'].to_s.length}"
+          when "approval_request" then "name=#{msg['name']} id=#{msg['id']}"
+          when "turn_done" then "reason=#{msg['reason']}"
+          when "error" then "code=#{msg['code']} message=#{msg['message']}"
+          else msg.reject { |k, _| k == "type" }.inspect
+          end
+        "seq=#{msg['seq']} #{type} #{detail}"
       end
 
       def submit(line, conn)

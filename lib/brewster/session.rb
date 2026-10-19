@@ -65,6 +65,7 @@ module Brewster
                                 chat_factory: @chat_factory,
                                 on_event: method(:turn_event))
       Log.info("session=#{@id} turn=start chars=#{text.length} model=#{model}")
+      Log.debug("session=#{@id} turn=start text=#{text.inspect}")
       @turn_thread = Thread.new do
         Thread.current.report_on_exception = false
         loop.run(text)
@@ -86,16 +87,21 @@ module Brewster
 
     private
 
-    # Per-event log line: streaming chunks would flood the log, so
-    # text_delta is debug-only; tool traffic and lifecycle are info.
+    # Per-event log line. Chunks and user text are logged verbatim at debug
+    # so a stuck turn can be diagnosed from one log file; info keeps the
+    # lifecycle/tool summary.
     def log_event(type, payload)
       case type
       when :text_delta
-        Log.debug("session=#{@id} text_delta chars=#{payload[:text].to_s.length}")
+        Log.debug("session=#{@id} text_delta #{payload[:text].to_s.inspect}")
+      when :user_message
+        Log.debug("session=#{@id} user_message #{payload[:text].to_s.inspect}")
       when :tool_call
-        Log.info("session=#{@id} tool_call name=#{payload[:name]} id=#{payload[:id]}")
+        Log.info("session=#{@id} tool_call name=#{payload[:name]} id=#{payload[:id]} " \
+                 "args=#{payload[:args].inspect}")
       when :tool_output
         Log.info("session=#{@id} tool_output id=#{payload[:id]} bytes=#{payload[:output].to_s.length}")
+        Log.debug("session=#{@id} tool_output #{payload[:output].to_s[0, 2000].inspect}")
       when :approval_request
         Log.info("session=#{@id} approval_request name=#{payload[:name]} id=#{payload[:id]}")
       when :error
