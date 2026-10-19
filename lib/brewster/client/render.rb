@@ -6,6 +6,9 @@ module Brewster
     # region at the bottom (streaming text, input line, status line).
     class Render
       CLEAR_LINE = "\e[2K\r"
+      # Raw mode disables OPOST: a bare "\n" moves down without returning the
+      # carriage, so every row the renderer emits between lines needs CRLF.
+      EOL = "\r\n"
       CURSOR_SHOW = "\e[?25h"
       CURSOR_HIDE = "\e[?25l"
       RESET = "\e[0m"
@@ -58,7 +61,7 @@ module Brewster
 
       def block(content, color: nil)
         lines = content.is_a?(Array) ? content : content.to_s.lines.map(&:chomp)
-        scroll(lines.map { |l| color ? color + l + RESET : l }.join("\n"))
+        scroll(lines.map { |l| color ? color + l + RESET : l }.join(EOL))
         redraw
       end
 
@@ -70,7 +73,7 @@ module Brewster
       def output_preview(text, lines = 3)
         return if text.nil? || text.empty?
         preview = text.lines.first(lines).map { |l| "  #{DIM}#{l.chomp}#{RESET}" }
-        scroll(preview.join("\n"))
+        scroll(preview.join(EOL))
         redraw
       end
 
@@ -106,12 +109,17 @@ module Brewster
       private
 
       # Live region: streaming text (last line), optional approval prompt,
-      # input line, status line. @drawn is how many rows the cursor is
-      # currently parked below; every redraw walks back exactly that far so
-      # the region can shrink (e.g. the streaming row disappearing when the
-      # turn ends). scroll() leaves @drawn = 0 with the cursor on a clean
-      # line, so redraw always emits at least one row and never needs to
-      # move the cursor up past the top.
+      # input line, status line.
+      #
+      # Cursor invariant: redraw() ALWAYS enters and exits with the cursor at
+      # the region's top row (= the input row when the region shrinks). Entry
+      # states are "parked at top" (after any prior redraw) or "clean line at
+      # column 0" (fresh start / after scroll, where @drawn == 0); CLEAR_LINE's
+      # \r makes even a mid-line cursor safe. There is deliberately no
+      # cursor-up at the start: the previous redraw already parked us there,
+      # and moving up again would shift the region a row higher every keypress.
+      # @drawn tracks the region HEIGHT so scroll() knows how far down the
+      # next scrollback line starts.
       def redraw
         rows = []
         live = @live_text.lines.last&.chomp
@@ -119,23 +127,30 @@ module Brewster
         rows << "#{YELLOW}#{@approval}#{RESET}" if @approval
         rows << "#{BOLD}> #{RESET}#{@input}"
         rows << "#{DIM}#{@status}#{RESET}"
+        rows = rows.map { |r| truncate(r) }
 
-        @out.print("\e[#{@drawn}A") if @drawn.positive?
         @out.print(CLEAR_LINE)
-        @out.print(rows.map { |r| truncate(r) }.join("\e[K\r\n"))
-        @out.print("\e[K\e[#{rows.length - 1}A\r")
+        @out.print(rows.join("\e[K\r\n"))
+        # Cursor is on the last row. Wipe it and anything stale below (a
+        # shrinking region), then climb back to the top row for the next call.
+        @out.print("\e[K\e[J")
+        @out.print("\e[#{rows.length - 1}A") if rows.length > 1
+        @out.print("\r")
         @out.print(CURSOR_HIDE)
         @out.flush
-        @drawn = rows.length - 1
+        @drawn = rows.length
       end
 
-      # Prints finished content to scrollback, clearing the live region first.
-      # The cursor ends on a clean line (start of a new blank row).
+      # Prints finished content to scrollback. Enter: cursor at the region
+      # top (redraw parks it there; scroll leaves it there). Text is written
+      # starting AT that line, overwriting the live region top-down, then
+      # everything below is wiped. Exit: column 0 of the line under the text
+      # = where the next redraw draws.
       def scroll(text)
-        row = wrap(text)
+        lines = wrap(text).split("\r\n", -1)
         @out.print(CLEAR_LINE)
-        @out.print("\e[#{@drawn}B") if @drawn.positive?
-        @out.print("\e[J#{row}\n")
+        @out.print(lines.map { |l| "#{l}\e[K" }.join("\r\n"))
+        @out.print("\r\n\e[J")
         @out.flush
         @drawn = 0
       end
