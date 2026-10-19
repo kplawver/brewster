@@ -2,3 +2,6 @@
 /tmp/
 *.log
 .env
+
+# direnv bootstrap (secrets live in .env, which is ignored)
+/.envrc
